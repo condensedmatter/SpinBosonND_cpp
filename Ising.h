@@ -7,12 +7,12 @@
 #include <numeric> // accumulate();
 using namespace std;
 class my_random{
-    private:
+    public:
     std::random_device rd;
     std::mt19937 mt;
     std::uniform_int_distribution<int> dis_bool;
     std::uniform_real_distribution<double> dis_01;
-    public:
+
     my_random():mt(rd()), dis_bool(0,1),dis_01(0.0,1.0) {}
     my_random(int seed):mt(seed), dis_bool(0,1),dis_01(0.0,1.0){}
 
@@ -33,6 +33,8 @@ class my_random{
     }
 };
 my_random rng(2);//global object rng
+// to reset new seed call this:
+// rng.mt.seed(3);
 
 class my_random_neighbour{
     public:
@@ -79,7 +81,7 @@ class my_random_neighbour{
             i=index+1;
            */
             index =insert_rand( Cum[i]+i,rng.rd_01(),M+2-i);
-            if(index+i <M) {output.push_back(index+i);}//cout<<"push "<<index+i<<endl;}
+            if(index+i <M) {output.push_back(index+i);}
             i=index+1+i;
         }
         return output;   // { output= {x} | x in 0,1,...,M-1}
@@ -97,6 +99,7 @@ class my_random_neighbour{
     return i;
     }
 }; //Cumulative probability method
+
 class My_random{
     public:
     my_random_neighbour a;
@@ -150,20 +153,14 @@ class My_random{
         return output;
     }
 
-    /*
-    My_random(int N0,int N1,double K0,double K1):a(couples(N0,N1,K0,K1),4){
-    }
-    vector<double> couples(int N0,int N1,double K0,double K1){
-        //cout<<"I'm running during initialization"<<endl;
-        return {K0,K0,K1,K1};
-    }
-    */
     vector<int> get_rand(){
         return a.rd_neighbour();
     }
 };
 
-//h[N0*N1][N1+1]
+
+// h[i][j]  the j-th neighbour of site i has index h[i][j]
+// the coding is in pdf on Overleaf.com
 void hashing_1d(int **h,int N0){
     int s;
     for(int i=0;i<N0;i++){
@@ -206,35 +203,7 @@ void hashing_3d(int **h,int N0,int N1,int N2){
 
 }
 
-double mag_m2(vector<double> m){
-    double output=0.0;
-    for(auto i:m){
-        output+=pow(i,2);
-    }
-    return output/m.size();
-}
-double mag_m4(vector<double> m){
-    double output=0.0;
-    for(auto i:m){
-        output+=pow(i,4);
-    }
-    return output/m.size();
-}
-void best_and_error(vector<double> v,double &best,double &error){
-    best=0.0;
-    error=0.0;
-    int N=v.size();
-    if(N>0){
-        for(auto i:v){
-            best+=i;
-        }
-        best=best/N;
-        for(auto i:v){
-            error+=pow(i-best,2);
-        }
-        error=pow(error/N,0.5);
-    }
-}
+
 
 
 #include <queue>   // class Ising.updating()  Q
@@ -251,30 +220,23 @@ class Ising{
     int **hashing;//pointer to a 2D array  hashing[i][j]  site i's j-th neighbour
                   //j-th neighbour
 
-    //another possible method
-    //bool * **hash;     hash[i][j]=&s[f(i,j)];    *hash[i][j] can be operated directly
-
     My_random pp;
-/*
-    Ising(int N0,double K0,double A0):pp(N0,K0,A0){
-
-    }
-*/
-Ising(int N0,double K0,double A0):pp(N0,K0,A0){
-    //neither work for N1=1 nor N1=2,  we should set N1>=3
-    //N0 is imaginary time, should be larger
-    dimension=1; Ntotal=N0;
-    Ns.push_back(N0);
-    Ks.push_back(K0);A=A0;
-    s=new bool[Ntotal];
-    rng.rd_thermo(s,Ntotal);// RANDOM 1
-    hashing=new int*[Ntotal];
-    for(int i=0;i<Ntotal;i++){
-        hashing[i]=new int[(dimension-1)*2+N0-1];
-    }
-    hashing_1d(hashing,N0);
-    //updating(Ntotal*100);
-}
+        // 0+1 D long range Ising problem
+	Ising(int N0,double K0,double A0):pp(N0,K0,A0){
+	    //neither work for N1=1 nor N1=2,  we should set N1>=3
+	    //N0 is imaginary time, should be larger
+	    dimension=1; Ntotal=N0;
+	    Ns.push_back(N0);
+	    Ks.push_back(K0);A=A0;
+	    s=new bool[Ntotal];
+	    rng.rd_thermo(s,Ntotal);// RANDOM 1
+	    hashing=new int*[Ntotal];
+	    for(int i=0;i<Ntotal;i++){
+		hashing[i]=new int[(dimension-1)*2+N0-1];
+	    }
+	    hashing_1d(hashing,N0);
+	}
+    // 1+1 D long range Ising problem
     Ising(int N0,int N1,double K0,double K1,double A0):pp(N0,N1,K0,K1,A0){
         //neither work for N1=1 nor N1=2,  we should set N1>=3
         //N0 is imaginary time, should be larger
@@ -288,8 +250,8 @@ Ising(int N0,double K0,double A0):pp(N0,K0,A0){
             hashing[i]=new int[(dimension-1)*2+N0-1];
         }
         hashing_2d(hashing,N0,N1);
-        //updating(Ntotal*100);
     }
+    // 2+1 D long range Ising problem
     Ising(int N0,int N1,int N2,double K0,double K1,double K2,double A0):pp(N0,N1,N2,K0,K1,K2,A0){
         dimension=3; Ntotal=N0*N1*N2;
         Ns.push_back(N0);Ns.push_back(N1);Ns.push_back(N2);
@@ -301,7 +263,6 @@ Ising(int N0,double K0,double A0):pp(N0,K0,A0){
             hashing[i]=new int[(dimension-1)*2+N0-1];
         }
         hashing_3d(hashing,N0,N1,N2);
-        //updating(Ntotal*100);
     }
     ~Ising(){
         delete [] s;
@@ -311,13 +272,7 @@ Ising(int N0,double K0,double A0):pp(N0,K0,A0){
         delete [] hashing;
     }
 
-
-    void updating(int loops){
-      for (size_t i = 0; i < loops; i++) {
-        updating();
-      }
-    }
-
+    // Wolff cluster updating algorithm
     void updating(){
           queue<int> Q;
           vector<int> bb;
@@ -340,70 +295,13 @@ Ising(int N0,double K0,double A0):pp(N0,K0,A0){
           }
     }
 
-
-
-    // it still works if <bool> is replaced by <int>
-
-    void printall( ) {
-      for (size_t i = 0; i < Ntotal; i++) {
-        cout<<s[i];
+    // updating "loops" times
+    void updating(int loops){
+      for (size_t i = 0; i < loops; i++) {
+        updating();
       }
-      cout<<endl;
     }
 
-    double mag_per_site(){
-      /*
-        std::cout << Ks[0] <<" " << Ks[1] << '\n';
-        for (size_t i = 0; i < Ns[0]; i++) {
-          for (size_t j = 0; j < Ns[1]; j++) {
-            cout<< ((s[i+j*Ns[0]]==true) ? 'X' : '.');
-          }
-          std::cout << '\n';
-        } std::cout << "************" << '\n';
-  */
-        return accumulate(s,s+Ntotal,0)*2.0/Ntotal-1.0;
-    }
-
-    double binder(double threshold){
-        //this is a self adaptive calculation
-        //if the relative error is larger than the threshold,
-        //then increase sec
-        int substeps=1000;
-        int sec=5;
-
-        vector <vector<double>> magnetization_series(sec);
-        double temp_m2;
-        double temp_m4;
-        vector <double> binder_series(sec);
-
-
-        double best=1.0;
-        double error=1.0;
-
-        for(int i=0;i<substeps;i++){
-            updating();
-        }
-        while( abs(error) >  abs(best*threshold)     ){
-
-            for(int j=0;j<sec;j++){
-                for(int i=0;i<substeps;i++){
-                    updating(5);
-                    magnetization_series[j].push_back(mag_per_site());
-                }
-                temp_m2=mag_m2(magnetization_series[j]);
-                temp_m4=mag_m4(magnetization_series[j]);
-                binder_series[j]=( 1.5-0.5*temp_m4/pow(temp_m2,2) );
-            }
-            best_and_error(binder_series,best,error);
-            substeps=substeps*2;
-            //std::cout << substeps << '\n';
-            //std::cout << best <<  "\t"<< error<< '\n';
-        }
-
-        std::cout << best <<  "\t"<< error<< '\n';
-
-        return best;
-    }
 };
 
 
